@@ -1,0 +1,2627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Animal Runner</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #111827;
+    touch-action: none;
+}
+
+canvas {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+
+/* MENU */
+
+#menu {
+    position: fixed;
+    z-index: 10;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    width: min(850px, 94vw);
+    max-height: 94vh;
+
+    overflow-y: auto;
+
+    padding: 20px;
+
+    color: white;
+    text-align: center;
+
+    background: #0f172a;
+
+    border-radius: 20px;
+
+    box-shadow: 0 20px 60px rgba(0,0,0,.8);
+}
+
+h1 {
+    margin: 0 0 5px;
+    font-size: 38px;
+}
+
+h2 {
+    margin: 15px 0 8px;
+}
+
+.characters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    max-width: 700px;
+    margin: auto;
+}
+
+button {
+    border: 2px solid #475569;
+    border-radius: 10px;
+
+    background: #1e293b;
+    color: white;
+
+    padding: 10px;
+
+    font-size: 15px;
+    font-weight: bold;
+}
+
+button.selected {
+    background: #2563eb;
+    border-color: #60a5fa;
+}
+
+.character {
+    min-height: 82px;
+}
+
+.icon {
+    display: block;
+    font-size: 35px;
+}
+
+#start {
+    display: block;
+    margin: 18px auto 5px;
+
+    padding: 13px 50px;
+
+    background: #16a34a;
+    border-color: #4ade80;
+
+    font-size: 20px;
+}
+
+.small {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* GAME BUTTONS */
+
+.gameButton {
+    position: fixed;
+    z-index: 5;
+
+    display: none;
+
+    border: 2px solid rgba(255,255,255,.5);
+
+    background: rgba(15,23,42,.75);
+
+    color: white;
+
+    border-radius: 14px;
+
+    user-select: none;
+}
+
+#pause {
+    right: 10px;
+    top: 10px;
+    padding: 10px 15px;
+}
+
+#fullscreen {
+    right: 100px;
+    top: 10px;
+    padding: 10px 15px;
+}
+
+/* MOBILE CONTROLS */
+
+#controls {
+    position: fixed;
+    z-index: 6;
+
+    display: none;
+
+    left: 0;
+    right: 0;
+    bottom: 15px;
+
+    padding: 0 15px;
+
+    justify-content: space-between;
+    align-items: center;
+
+    pointer-events: none;
+}
+
+.controlButton {
+    width: 75px;
+    height: 75px;
+
+    border-radius: 50%;
+
+    background: rgba(15,23,42,.75);
+
+    border: 3px solid rgba(255,255,255,.6);
+
+    color: white;
+
+    font-size: 30px;
+
+    pointer-events: auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    user-select: none;
+}
+
+.controlButton.jump {
+    width: 95px;
+    height: 95px;
+
+    background: rgba(22,163,74,.8);
+
+    font-size: 35px;
+}
+
+.controlButton:active {
+    transform: scale(.92);
+}
+
+#leftControls,
+#rightControls {
+    display: flex;
+    gap: 10px;
+}
+
+/* END SCREEN */
+
+#restartButton {
+    display: none;
+
+    position: fixed;
+    z-index: 20;
+
+    left: 50%;
+    top: 65%;
+
+    transform: translate(-50%, -50%);
+
+    padding: 14px 35px;
+
+    background: #16a34a;
+
+    border-color: #4ade80;
+
+    font-size: 20px;
+}
+
+@media (max-width: 600px) {
+
+    #menu {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    .characters {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .character {
+        min-height: 70px;
+    }
+
+    .icon {
+        font-size: 30px;
+    }
+
+    #controls {
+        display: flex;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+
+<!-- ================= MENU ================= -->
+
+<div id="menu">
+
+    <h1>🏃 ANIMAL RUNNER</h1>
+
+    <p>Choose your character!</p>
+
+    <h2>🐾 Character</h2>
+
+    <div class="characters">
+
+        <button class="character selected" data-character="0">
+            <span class="icon">🦖</span>
+            Dino
+        </button>
+
+        <button class="character" data-character="1">
+            <span class="icon">🐔</span>
+            Chicken
+        </button>
+
+        <button class="character" data-character="2">
+            <span class="icon">🐐</span>
+            Goat
+        </button>
+
+        <button class="character" data-character="3">
+            <span class="icon">🐰</span>
+            Rabbit
+        </button>
+
+        <button class="character" data-character="4">
+            <span class="icon">🦊</span>
+            Fox
+        </button>
+
+        <button class="character" data-character="5">
+            <span class="icon">🐱</span>
+            Cat
+        </button>
+
+        <button class="character" data-character="6">
+            <span class="icon">🐶</span>
+            Dog
+        </button>
+
+        <button class="character" data-character="7">
+            <span class="icon">🐼</span>
+            Panda
+        </button>
+
+    </div>
+
+
+    <h2>🌞 Time</h2>
+
+    <button class="time selected" data-time="day">
+        🌞 DAY
+    </button>
+
+    <button class="time" data-time="night">
+        🌙 NIGHT
+    </button>
+
+
+    <h2>🏆 Level</h2>
+
+    <button class="level selected" data-level="easy">
+        🟢 EASY
+    </button>
+
+    <button class="level" data-level="hard">
+        🔴 HARD
+    </button>
+
+    <button class="level" data-level="endless">
+        ♾️ ENDLESS
+    </button>
+
+
+    <button id="start">
+        ▶ START GAME
+    </button>
+
+
+    <p class="small">
+        Computer: SPACE / ↑ = Jump, ↓ = Duck, P = Pause
+    </p>
+
+</div>
+
+
+<!-- ================= GAME BUTTONS ================= -->
+
+<button id="pause" class="gameButton">
+    ⏸
+</button>
+
+<button id="fullscreen" class="gameButton">
+    ⛶
+</button>
+
+
+<!-- ================= MOBILE CONTROLS ================= -->
+
+<div id="controls">
+
+    <div id="leftControls">
+
+        <button
+            id="duckButton"
+            class="controlButton">
+            ⬇️
+        </button>
+
+    </div>
+
+
+    <button
+        id="jumpButton"
+        class="controlButton jump">
+        ⬆️
+    </button>
+
+
+    <div id="rightControls">
+
+        <button
+            id="boostButton"
+            class="controlButton">
+            ⚡
+        </button>
+
+    </div>
+
+</div>
+
+
+<button id="restartButton">
+    🔄 PLAY AGAIN
+</button>
+
+
+
+<script>
+
+/* =====================================================
+   CANVAS
+===================================================== */
+
+const canvas =
+    document.getElementById("game");
+
+const ctx =
+    canvas.getContext("2d");
+
+
+let W = 1200;
+let H = 650;
+
+
+function resizeCanvas() {
+
+    const dpr =
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
+    W = 1200;
+    H = 650;
+
+    canvas.width =
+        W * dpr;
+
+    canvas.height =
+        H * dpr;
+
+    canvas.style.width =
+        "100vw";
+
+    canvas.style.height =
+        "100vh";
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+}
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+resizeCanvas();
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const menu =
+    document.getElementById("menu");
+
+const startButton =
+    document.getElementById("start");
+
+const pauseButton =
+    document.getElementById("pause");
+
+const fullscreenButton =
+    document.getElementById("fullscreen");
+
+const restartButton =
+    document.getElementById("restartButton");
+
+const jumpButton =
+    document.getElementById("jumpButton");
+
+const duckButton =
+    document.getElementById("duckButton");
+
+const boostButton =
+    document.getElementById("boostButton");
+
+
+/* =====================================================
+   SETTINGS
+===================================================== */
+
+let selectedCharacter = 0;
+
+let selectedTime = "day";
+
+let selectedLevel = "easy";
+
+
+/* =====================================================
+   CHARACTERS
+===================================================== */
+
+const characters = [
+
+    {
+        name: "Dino",
+        emoji: "🦖",
+        jump: -18
+    },
+
+    {
+        name: "Chicken",
+        emoji: "🐔",
+        jump: -19
+    },
+
+    {
+        name: "Goat",
+        emoji: "🐐",
+        jump: -17
+    },
+
+    {
+        name: "Rabbit",
+        emoji: "🐰",
+        jump: -21
+    },
+
+    {
+        name: "Fox",
+        emoji: "🦊",
+        jump: -19
+    },
+
+    {
+        name: "Cat",
+        emoji: "🐱",
+        jump: -20
+    },
+
+    {
+        name: "Dog",
+        emoji: "🐶",
+        jump: -18
+    },
+
+    {
+        name: "Panda",
+        emoji: "🐼",
+        jump: -18
+    }
+
+];
+
+
+let currentCharacter =
+    characters[0];
+
+
+/* =====================================================
+   GAME STATE
+===================================================== */
+
+let running = false;
+
+let paused = false;
+
+let gameOver = false;
+
+
+let score = 0;
+
+let coins = 0;
+
+let lives = 3;
+
+let speed = 6;
+
+let frames = 0;
+
+
+let boost = false;
+
+let boostTimer = 0;
+
+let shield = false;
+
+
+let obstacles = [];
+
+let coinObjects = [];
+
+let powerups = [];
+
+
+let spawnTimer = 80;
+
+let coinTimer = 60;
+
+let powerTimer = 400;
+
+
+let highScore =
+    Number(
+        localStorage.getItem(
+            "animalRunnerHighScore"
+        )
+    ) || 0;
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player = {
+
+    x: 150,
+
+    /*
+       Ground position.
+
+       Road top = 535.
+
+       Character height = 90.
+
+       Therefore:
+
+       535 - 90 = 445
+    */
+
+    y: 445,
+
+    width: 70,
+
+    height: 90,
+
+    velocityY: 0,
+
+    grounded: true,
+
+    ducking: false,
+
+
+    reset() {
+
+        this.x = 150;
+
+        this.y = 445;
+
+        this.velocityY = 0;
+
+        this.grounded = true;
+
+        this.ducking = false;
+
+    },
+
+
+    jump() {
+
+        if (
+            !running ||
+            paused ||
+            gameOver ||
+            !this.grounded
+        ) {
+            return;
+        }
+
+
+        this.velocityY =
+            currentCharacter.jump;
+
+        this.grounded = false;
+
+    },
+
+
+    update() {
+
+        if (!this.grounded) {
+
+            this.velocityY += 0.9;
+
+            this.y +=
+                this.velocityY;
+
+
+            if (this.y >= 445) {
+
+                this.y = 445;
+
+                this.velocityY = 0;
+
+                this.grounded = true;
+
+            }
+
+        }
+
+
+        this.ducking =
+            keys.ArrowDown &&
+            this.grounded;
+
+    },
+
+
+    draw() {
+
+        ctx.save();
+
+
+        /*
+           IMPORTANT:
+
+           The character uses this.y.
+
+           Therefore the WHOLE character
+           moves when jumping.
+        */
+
+        ctx.font =
+            "72px Arial";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.textBaseline =
+            "bottom";
+
+
+        ctx.fillText(
+
+            currentCharacter.emoji,
+
+            this.x + 35,
+
+            this.y + this.height
+
+        );
+
+
+        /*
+           NAME
+        */
+
+        ctx.font =
+            "bold 14px Arial";
+
+        ctx.fillStyle =
+            "#111827";
+
+
+        ctx.fillText(
+
+            currentCharacter.name,
+
+            this.x + 35,
+
+            this.y - 8
+
+        );
+
+
+        /*
+           SHIELD
+        */
+
+        if (shield) {
+
+            ctx.strokeStyle =
+                "#38bdf8";
+
+            ctx.lineWidth = 5;
+
+
+            ctx.beginPath();
+
+
+            ctx.arc(
+
+                this.x + 35,
+
+                this.y + 45,
+
+                50,
+
+                0,
+
+                Math.PI * 2
+
+            );
+
+
+            ctx.stroke();
+
+        }
+
+
+        ctx.restore();
+
+    }
+
+};
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+const keys = {
+
+    ArrowDown: false
+
+};
+
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        keys[event.code] = true;
+
+
+        if (
+            event.code === "Space" ||
+            event.code === "ArrowUp"
+        ) {
+
+            event.preventDefault();
+
+            if (gameOver) {
+
+                startGame();
+
+            }
+            else {
+
+                player.jump();
+
+            }
+
+        }
+
+
+        if (
+            event.code === "KeyP"
+        ) {
+
+            togglePause();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keyup",
+    function(event) {
+
+        keys[event.code] = false;
+
+    }
+);
+
+
+/* =====================================================
+   CHARACTER BUTTONS
+===================================================== */
+
+document
+.querySelectorAll(".character")
+.forEach(function(button) {
+
+    button.addEventListener(
+        "click",
+        function() {
+
+            document
+            .querySelectorAll(".character")
+            .forEach(function(b) {
+
+                b.classList.remove(
+                    "selected"
+                );
+
+            });
+
+
+            button.classList.add(
+                "selected"
+            );
+
+
+            selectedCharacter =
+                Number(
+                    button.dataset.character
+                );
+
+
+            currentCharacter =
+                characters[
+                    selectedCharacter
+                ];
+
+        }
+    );
+
+});
+
+
+/* =====================================================
+   TIME BUTTONS
+===================================================== */
+
+document
+.querySelectorAll(".time")
+.forEach(function(button) {
+
+    button.addEventListener(
+        "click",
+        function() {
+
+            document
+            .querySelectorAll(".time")
+            .forEach(function(b) {
+
+                b.classList.remove(
+                    "selected"
+                );
+
+            });
+
+
+            button.classList.add(
+                "selected"
+            );
+
+
+            selectedTime =
+                button.dataset.time;
+
+        }
+    );
+
+});
+
+
+/* =====================================================
+   LEVEL BUTTONS
+===================================================== */
+
+document
+.querySelectorAll(".level")
+.forEach(function(button) {
+
+    button.addEventListener(
+        "click",
+        function() {
+
+            document
+            .querySelectorAll(".level")
+            .forEach(function(b) {
+
+                b.classList.remove(
+                    "selected"
+                );
+
+            });
+
+
+            button.classList.add(
+                "selected"
+            );
+
+
+            selectedLevel =
+                button.dataset.level;
+
+        }
+    );
+
+});
+
+
+/* =====================================================
+   START
+===================================================== */
+
+startButton.addEventListener(
+    "click",
+    startGame
+);
+
+
+function startGame() {
+
+    currentCharacter =
+        characters[
+            selectedCharacter
+        ];
+
+
+    running = true;
+
+    paused = false;
+
+    gameOver = false;
+
+
+    score = 0;
+
+    coins = 0;
+
+    lives = 3;
+
+
+    frames = 0;
+
+
+    obstacles = [];
+
+    coinObjects = [];
+
+    powerups = [];
+
+
+    boost = false;
+
+    boostTimer = 0;
+
+    shield = false;
+
+
+    if (
+        selectedLevel === "easy"
+    ) {
+
+        speed = 6;
+
+    }
+
+
+    if (
+        selectedLevel === "hard"
+    ) {
+
+        speed = 8;
+
+    }
+
+
+    if (
+        selectedLevel === "endless"
+    ) {
+
+        speed = 7;
+
+    }
+
+
+    spawnTimer = 80;
+
+    coinTimer = 50;
+
+    powerTimer = 400;
+
+
+    player.reset();
+
+
+    menu.style.display =
+        "none";
+
+
+    pauseButton.style.display =
+        "block";
+
+
+    fullscreenButton.style.display =
+        "block";
+
+
+    restartButton.style.display =
+        "none";
+
+}
+
+
+/* =====================================================
+   PAUSE
+===================================================== */
+
+pauseButton.addEventListener(
+    "click",
+    togglePause
+);
+
+
+function togglePause() {
+
+    if (
+        !running ||
+        gameOver
+    ) {
+        return;
+    }
+
+
+    paused =
+        !paused;
+
+
+    pauseButton.textContent =
+        paused
+        ? "▶"
+        : "⏸";
+
+}
+
+
+/* =====================================================
+   FULLSCREEN
+===================================================== */
+
+fullscreenButton.addEventListener(
+    "click",
+    async function() {
+
+        try {
+
+            if (!document.fullscreenElement) {
+
+                await document
+                    .documentElement
+                    .requestFullscreen();
+
+            }
+            else {
+
+                await document
+                    .exitFullscreen();
+
+            }
+
+        }
+        catch(error) {
+
+            console.log(
+                "Fullscreen unavailable"
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   MOBILE JUMP
+===================================================== */
+
+function mobileJump(event) {
+
+    event.preventDefault();
+
+    if (gameOver) {
+
+        startGame();
+
+    }
+    else {
+
+        player.jump();
+
+    }
+
+}
+
+
+jumpButton.addEventListener(
+    "touchstart",
+    mobileJump,
+    { passive: false }
+);
+
+
+jumpButton.addEventListener(
+    "mousedown",
+    mobileJump
+);
+
+
+/* =====================================================
+   MOBILE DUCK
+===================================================== */
+
+function duckStart(event) {
+
+    event.preventDefault();
+
+    keys.ArrowDown = true;
+
+}
+
+
+function duckEnd(event) {
+
+    event.preventDefault();
+
+    keys.ArrowDown = false;
+
+}
+
+
+duckButton.addEventListener(
+    "touchstart",
+    duckStart,
+    { passive: false }
+);
+
+
+duckButton.addEventListener(
+    "touchend",
+    duckEnd,
+    { passive: false }
+);
+
+
+duckButton.addEventListener(
+    "mousedown",
+    duckStart
+);
+
+
+duckButton.addEventListener(
+    "mouseup",
+    duckEnd
+);
+
+
+/* =====================================================
+   MOBILE BOOST
+===================================================== */
+
+boostButton.addEventListener(
+    "click",
+    function() {
+
+        if (
+            shield ||
+            !running ||
+            paused
+        ) {
+
+            boost = true;
+
+            boostTimer = 250;
+
+        }
+
+        else {
+
+            boost = true;
+
+            boostTimer = 250;
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   CREATE OBSTACLE
+===================================================== */
+
+function createObstacle() {
+
+    /*
+       ZOMBIE
+    */
+
+    if (
+        Math.random() < 0.20
+    ) {
+
+        obstacles.push({
+
+            type: "zombie",
+
+            x: W + 50,
+
+            y: 455,
+
+            width: 55,
+
+            height: 80,
+
+            speed:
+                speed * 0.6
+
+        });
+
+
+        return;
+
+    }
+
+
+    /*
+       BIRD
+    */
+
+    if (
+        Math.random() < 0.15 &&
+        score > 150
+    ) {
+
+        obstacles.push({
+
+            type: "bird",
+
+            x: W + 50,
+
+            y: 365,
+
+            width: 65,
+
+            height: 40,
+
+            speed:
+                speed + 1
+
+        });
+
+
+        return;
+
+    }
+
+
+    /*
+       CACTUS
+
+       Road top = 535.
+
+       Cactus bottom = 535.
+    */
+
+    const big =
+        Math.random() < 0.3;
+
+
+    const height =
+        big
+        ? 90
+        : 65;
+
+
+    obstacles.push({
+
+        type: "cactus",
+
+        x: W + 50,
+
+        y:
+            535 - height,
+
+        width:
+            big
+            ? 45
+            : 30,
+
+        height:
+            height,
+
+        speed:
+            speed
+
+    });
+
+}
+
+
+/* =====================================================
+   UPDATE OBSTACLES
+===================================================== */
+
+function updateObstacles() {
+
+    spawnTimer--;
+
+
+    if (
+        spawnTimer <= 0
+    ) {
+
+        createObstacle();
+
+
+        let gap;
+
+
+        if (
+            selectedLevel === "easy"
+        ) {
+
+            gap = 120;
+
+        }
+        else if (
+            selectedLevel === "hard"
+        ) {
+
+            gap = 85;
+
+        }
+        else {
+
+            gap =
+                Math.max(
+                    65,
+                    115 -
+                    speed * 2
+                );
+
+        }
+
+
+        spawnTimer =
+            gap +
+            Math.random() * 60;
+
+    }
+
+
+    for (
+        const obstacle of obstacles
+    ) {
+
+        obstacle.x -=
+
+            boost
+
+            ? obstacle.speed * 1.7
+
+            : obstacle.speed;
+
+    }
+
+
+    obstacles =
+        obstacles.filter(
+            function(o) {
+
+                return o.x > -150;
+
+            }
+        );
+
+}
+
+
+/* =====================================================
+   COINS
+===================================================== */
+
+function createCoin() {
+
+    coinObjects.push({
+
+        x: W + 50,
+
+        y:
+            350 +
+            Math.random() * 100,
+
+        width: 25,
+
+        height: 25
+
+    });
+
+}
+
+
+function updateCoins() {
+
+    coinTimer--;
+
+
+    if (
+        coinTimer <= 0
+    ) {
+
+        createCoin();
+
+
+        coinTimer =
+            70 +
+            Math.random() * 70;
+
+    }
+
+
+    for (
+        const coin of coinObjects
+    ) {
+
+        coin.x -=
+
+            boost
+            ? speed * 1.7
+            : speed;
+
+    }
+
+
+    for (
+        const coin of coinObjects
+    ) {
+
+        if (
+            collision(
+                player,
+                coin
+            )
+        ) {
+
+            coins++;
+
+            score += 25;
+
+            coin.x = -500;
+
+        }
+
+    }
+
+
+    coinObjects =
+        coinObjects.filter(
+            function(c) {
+
+                return c.x > -100;
+
+            }
+        );
+
+}
+
+
+/* =====================================================
+   POWERUPS
+===================================================== */
+
+function updatePowerups() {
+
+    powerTimer--;
+
+
+    if (
+        powerTimer <= 0
+    ) {
+
+        powerups.push({
+
+            type:
+                Math.random() < 0.5
+                ? "boost"
+                : "shield",
+
+            x: W + 50,
+
+            y: 370,
+
+            width: 40,
+
+            height: 40
+
+        });
+
+
+        powerTimer =
+            450 +
+            Math.random() * 400;
+
+    }
+
+
+    for (
+        const power of powerups
+    ) {
+
+        power.x -= speed;
+
+    }
+
+
+    for (
+        const power of powerups
+    ) {
+
+        if (
+            collision(
+                player,
+                power
+            )
+        ) {
+
+            if (
+                power.type === "boost"
+            ) {
+
+                boost = true;
+
+                boostTimer = 450;
+
+            }
+            else {
+
+                shield = true;
+
+            }
+
+
+            power.x = -500;
+
+        }
+
+    }
+
+
+    powerups =
+        powerups.filter(
+            function(p) {
+
+                return p.x > -100;
+
+            }
+        );
+
+
+    if (boost) {
+
+        boostTimer--;
+
+
+        if (
+            boostTimer <= 0
+        ) {
+
+            boost = false;
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   COLLISION
+===================================================== */
+
+function collision(a, b) {
+
+    return (
+
+        a.x + 12 <
+        b.x + b.width &&
+
+        a.x + a.width - 12 >
+        b.x &&
+
+        a.y + 10 <
+        b.y + b.height &&
+
+        a.y + a.height >
+        b.y
+
+    );
+
+}
+
+
+function checkCollisions() {
+
+    for (
+        const obstacle of obstacles
+    ) {
+
+        const box = {
+
+            x: player.x,
+
+            y:
+                player.ducking
+                ? player.y + 25
+                : player.y,
+
+            width:
+                player.width,
+
+            height:
+                player.ducking
+                ? 55
+                : player.height
+
+        };
+
+
+        if (
+            collision(
+                box,
+                obstacle
+            )
+        ) {
+
+            obstacle.x = -500;
+
+
+            if (shield) {
+
+                shield = false;
+
+            }
+            else {
+
+                lives--;
+
+
+                if (
+                    lives <= 0
+                ) {
+
+                    loseGame();
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   DRAW BACKGROUND
+===================================================== */
+
+function drawBackground() {
+
+    /*
+       SKY
+    */
+
+    ctx.fillStyle =
+
+        selectedTime === "day"
+
+        ? "#38bdf8"
+
+        : "#172554";
+
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    /*
+       SUN / MOON
+    */
+
+    ctx.fillStyle =
+
+        selectedTime === "day"
+
+        ? "#fde047"
+
+        : "#f8fafc";
+
+
+    ctx.beginPath();
+
+
+    ctx.arc(
+        950,
+        100,
+        45,
+        0,
+        Math.PI * 2
+    );
+
+
+    ctx.fill();
+
+
+    /*
+       CLOUDS
+    */
+
+    ctx.fillStyle =
+
+        selectedTime === "day"
+
+        ? "rgba(255,255,255,.8)"
+
+        : "rgba(100,116,139,.5)";
+
+
+    for (
+        let i = 0;
+        i < 7;
+        i++
+    ) {
+
+        let x =
+            (
+                i * 220 -
+                frames * 0.3
+            ) % 1400;
+
+
+        if (
+            x < -100
+        ) {
+
+            x += 1400;
+
+        }
+
+
+        const y =
+            70 +
+            (i % 3) * 55;
+
+
+        ctx.beginPath();
+
+
+        ctx.arc(
+            x,
+            y,
+            25,
+            0,
+            Math.PI * 2
+        );
+
+
+        ctx.arc(
+            x + 30,
+            y - 10,
+            22,
+            0,
+            Math.PI * 2
+        );
+
+
+        ctx.arc(
+            x + 60,
+            y,
+            18,
+            0,
+            Math.PI * 2
+        );
+
+
+        ctx.fill();
+
+    }
+
+
+    /*
+       YELLOW ROAD
+    */
+
+    ctx.fillStyle =
+        "#facc15";
+
+
+    ctx.fillRect(
+        0,
+        535,
+        W,
+        115
+    );
+
+
+    /*
+       ROAD EDGE
+    */
+
+    ctx.fillStyle =
+        "#92400e";
+
+
+    ctx.fillRect(
+        0,
+        535,
+        W,
+        8
+    );
+
+
+    /*
+       ROAD LINES
+    */
+
+    ctx.fillStyle =
+        "#a16207";
+
+
+    for (
+        let x = -100;
+        x < W + 100;
+        x += 120
+    ) {
+
+        const offset =
+            (frames * speed) % 120;
+
+
+        ctx.fillRect(
+            x - offset,
+            585,
+            70,
+            8
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   DRAW OBSTACLES
+===================================================== */
+
+function drawObstacles() {
+
+    for (
+        const o of obstacles
+    ) {
+
+
+        /*
+           CACTUS
+        */
+
+        if (
+            o.type === "cactus"
+        ) {
+
+            ctx.fillStyle =
+                "#15803d";
+
+
+            /*
+               Main body
+            */
+
+            ctx.fillRect(
+
+                o.x + 12,
+
+                o.y,
+
+                20,
+
+                o.height
+
+            );
+
+
+            /*
+               Left arm
+            */
+
+            ctx.fillRect(
+
+                o.x,
+
+                o.y + 25,
+
+                14,
+
+                12
+
+            );
+
+
+            ctx.fillRect(
+
+                o.x,
+
+                o.y + 15,
+
+                10,
+
+                25
+
+            );
+
+
+            /*
+               Right arm
+            */
+
+            ctx.fillRect(
+
+                o.x + 32,
+
+                o.y + 35,
+
+                14,
+
+                12
+
+            );
+
+        }
+
+
+        /*
+           BIRD
+        */
+
+        if (
+            o.type === "bird"
+        ) {
+
+            ctx.font =
+                "45px Arial";
+
+            ctx.textBaseline =
+                "alphabetic";
+
+
+            ctx.fillText(
+                "🐦",
+                o.x,
+                o.y + 35
+            );
+
+        }
+
+
+        /*
+           ZOMBIE
+        */
+
+        if (
+            o.type === "zombie"
+        ) {
+
+            ctx.font =
+                "65px Arial";
+
+            ctx.textBaseline =
+                "alphabetic";
+
+
+            ctx.fillText(
+                "🧟",
+                o.x,
+                o.y + 65
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   DRAW COINS
+===================================================== */
+
+function drawCoins() {
+
+    for (
+        const coin of coinObjects
+    ) {
+
+        ctx.fillStyle =
+            "#facc15";
+
+
+        ctx.beginPath();
+
+
+        ctx.arc(
+
+            coin.x + 12,
+
+            coin.y + 12,
+
+            12,
+
+            0,
+
+            Math.PI * 2
+
+        );
+
+
+        ctx.fill();
+
+
+        ctx.fillStyle =
+            "#92400e";
+
+
+        ctx.font =
+            "bold 15px Arial";
+
+
+        ctx.fillText(
+            "$",
+            coin.x + 7,
+            coin.y + 18
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   DRAW POWERUPS
+===================================================== */
+
+function drawPowerups() {
+
+    for (
+        const power of powerups
+    ) {
+
+        ctx.font =
+            "35px Arial";
+
+
+        ctx.fillText(
+
+            power.type === "boost"
+            ? "⚡"
+            : "🛡️",
+
+            power.x,
+            power.y + 32
+
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   HUD
+===================================================== */
+
+function drawHUD() {
+
+    ctx.fillStyle =
+        "#111827";
+
+
+    ctx.font =
+        "bold 20px Arial";
+
+
+    ctx.fillText(
+        "SCORE: " +
+        Math.floor(score),
+        25,
+        30
+    );
+
+
+    ctx.fillText(
+        "HIGH: " +
+        highScore,
+        25,
+        58
+    );
+
+
+    ctx.fillText(
+        "COINS: " +
+        coins,
+        25,
+        86
+    );
+
+
+    ctx.fillText(
+        "❤️".repeat(lives),
+        25,
+        116
+    );
+
+
+    ctx.fillText(
+
+        currentCharacter.emoji +
+        " " +
+        currentCharacter.name,
+
+        25,
+        146
+
+    );
+
+
+    if (boost) {
+
+        ctx.fillStyle =
+            "#ea580c";
+
+
+        ctx.fillText(
+            "⚡ BOOST",
+            900,
+            35
+        );
+
+    }
+
+
+    if (shield) {
+
+        ctx.fillStyle =
+            "#0284c7";
+
+
+        ctx.fillText(
+            "🛡 SHIELD",
+            900,
+            65
+        );
+
+    }
+
+
+    /*
+       PAUSE
+    */
+
+    if (paused) {
+
+        ctx.fillStyle =
+            "rgba(0,0,0,.65)";
+
+
+        ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+        );
+
+
+        ctx.textAlign =
+            "center";
+
+
+        ctx.fillStyle =
+            "white";
+
+
+        ctx.font =
+            "bold 60px Arial";
+
+
+        ctx.fillText(
+            "PAUSED",
+            W / 2,
+            300
+        );
+
+
+        ctx.font =
+            "22px Arial";
+
+
+        ctx.fillText(
+            "Press P or Pause",
+            W / 2,
+            345
+        );
+
+
+        ctx.textAlign =
+            "left";
+
+    }
+
+}
+
+
+/* =====================================================
+   ENDINGS
+===================================================== */
+
+function saveHighScore() {
+
+    if (
+        score > highScore
+    ) {
+
+        highScore =
+            Math.floor(score);
+
+
+        localStorage.setItem(
+            "animalRunnerHighScore",
+            highScore
+        );
+
+    }
+
+}
+
+
+function showEndScreen(
+    title,
+    subtitle,
+    color
+) {
+
+    gameOver = true;
+
+    running = false;
+
+
+    saveHighScore();
+
+
+    ctx.fillStyle =
+        "rgba(0,0,0,.75)";
+
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    ctx.textAlign =
+        "center";
+
+
+    ctx.fillStyle =
+        color;
+
+
+    ctx.font =
+        "bold 55px Arial";
+
+
+    ctx.fillText(
+        title,
+        W / 2,
+        190
+    );
+
+
+    ctx.fillStyle =
+        "white";
+
+
+    ctx.font =
+        "24px Arial";
+
+
+    ctx.fillText(
+        subtitle,
+        W / 2,
+        250
+    );
+
+
+    ctx.fillText(
+        "Final Score: " +
+        Math.floor(score),
+        W / 2,
+        310
+    );
+
+
+    ctx.fillText(
+        "Coins: " +
+        coins,
+        W / 2,
+        350
+    );
+
+
+    restartButton.style.display =
+        "block";
+
+
+    ctx.textAlign =
+        "left";
+
+}
+
+
+function happyEnding() {
+
+    showEndScreen(
+
+        "🎉 HAPPY ENDING!",
+
+        currentCharacter.name +
+        " reached the finish safely!",
+
+        "#4ade80"
+
+    );
+
+}
+
+
+function hardEnding() {
+
+    showEndScreen(
+
+        "💔 THE END",
+
+        "Your partner kissed someone else...",
+
+        "#ef4444"
+
+    );
+
+}
+
+
+function loseGame() {
+
+    showEndScreen(
+
+        "💀 GAME OVER",
+
+        "You couldn't escape the obstacles!",
+
+        "#ef4444"
+
+    );
+
+}
+
+
+/* =====================================================
+   RESTART
+===================================================== */
+
+restartButton.addEventListener(
+    "click",
+    startGame
+);
+
+
+/* =====================================================
+   UPDATE
+===================================================== */
+
+function update() {
+
+    if (
+        !running ||
+        paused ||
+        gameOver
+    ) {
+
+        return;
+
+    }
+
+
+    frames++;
+
+
+    score += 0.1;
+
+
+    /*
+       ENDLESS GETS HARDER
+    */
+
+    if (
+        selectedLevel === "endless"
+    ) {
+
+        speed += 0.002;
+
+    }
+
+
+    player.update();
+
+
+    updateObstacles();
+
+
+    updateCoins();
+
+
+    updatePowerups();
+
+
+    checkCollisions();
+
+
+    /*
+       EASY END
+    */
+
+    if (
+        selectedLevel === "easy" &&
+        score >= 800
+    ) {
+
+        happyEnding();
+
+        return;
+
+    }
+
+
+    /*
+       HARD END
+    */
+
+    if (
+        selectedLevel === "hard" &&
+        score >= 1000
+    ) {
+
+        hardEnding();
+
+        return;
+
+    }
+
+}
+
+
+/* =====================================================
+   DRAW
+===================================================== */
+
+function draw() {
+
+    drawBackground();
+
+    drawObstacles();
+
+    drawCoins();
+
+    drawPowerups();
+
+    player.draw();
+
+    drawHUD();
+
+}
+
+
+/* =====================================================
+   MAIN LOOP
+===================================================== */
+
+function gameLoop() {
+
+    update();
+
+    draw();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
