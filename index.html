@@ -291,7 +291,7 @@ button.selected {
 
         <button class="character" data-character="1">
             <span class="icon">🐔</span>
-            Chicken
+            VOVA
         </button>
 
         <button class="character" data-character="2">
@@ -351,6 +351,12 @@ button.selected {
     <button class="level" data-level="endless">
         ♾️ ENDLESS
     </button>
+
+    <h2>🏃 Parkour Mode</h2>
+    <button class="level" data-level="parkour-easy">🟢 PARKOUR EASY</button>
+    <button class="level" data-level="parkour-hard">🔴 PARKOUR HARD</button>
+    <button class="level" data-level="parkour-extreme">💀 PARKOUR EXTREME</button>
+    <button class="level" data-level="lava-parkour">🌋 LAVA PARKOUR</button>
 
 
     <button id="start">
@@ -529,7 +535,7 @@ const characters = [
     },
 
     {
-        name: "Chicken",
+        name: "VOVA",
         emoji: "🐔",
         jump: -19
     },
@@ -612,6 +618,10 @@ let coinObjects = [];
 
 let powerups = [];
 
+let parkourPlatforms = [];
+let parkourMode = false;
+let parkourTimer = 0;
+
 
 let spawnTimer = 80;
 
@@ -657,6 +667,7 @@ const player = {
     velocityY: 0,
 
     grounded: true,
+    parkourJumpCount: 0,
 
     ducking: false,
 
@@ -665,11 +676,13 @@ const player = {
 
         this.x = 150;
 
-        this.y = 445;
+        // In Parkour Mode the ground is lava, so start on the safe platform.
+        this.y = parkourMode ? 390 : 445;
 
         this.velocityY = 0;
 
         this.grounded = true;
+        this.parkourJumpCount = 0;
 
         this.ducking = false;
 
@@ -677,24 +690,26 @@ const player = {
 
 
     jump() {
+        if (!running || paused || gameOver) return;
 
-        if (
-            !running ||
-            paused ||
-            gameOver ||
-            !this.grounded
-        ) {
+        if (parkourMode) {
+            if (this.grounded) {
+                this.velocityY = currentCharacter.jump;
+                this.grounded = false;
+                this.parkourJumpCount = 1;
+                return;
+            }
+            if (this.parkourJumpCount < 2) {
+                this.velocityY = currentCharacter.jump * 0.9;
+                this.parkourJumpCount = 2;
+            }
             return;
         }
 
-
-        this.velocityY =
-            currentCharacter.jump;
-
+        if (!this.grounded) return;
+        this.velocityY = currentCharacter.jump;
         this.grounded = false;
-
     },
-
 
     update() {
 
@@ -1054,6 +1069,22 @@ function startGame() {
     shield = false;
 
 
+    parkourMode = selectedLevel.indexOf("parkour-") === 0 || selectedLevel === "lava-parkour";
+    parkourPlatforms = [];
+    parkourTimer = 0;
+
+    // Permanent starting platform above the lava.
+    if (parkourMode) {
+        parkourPlatforms.push({
+            x: 80,
+            y: 480,
+            width: 220,
+            height: 22,
+            speed: 0,
+            start: true
+        });
+    }
+
     if (
         selectedLevel === "easy"
     ) {
@@ -1079,6 +1110,11 @@ function startGame() {
         speed = 7;
 
     }
+
+    if (selectedLevel === "parkour-easy") speed = 6;
+    if (selectedLevel === "parkour-hard") speed = 7.5;
+    if (selectedLevel === "parkour-extreme") speed = 9;
+    if (selectedLevel === "lava-parkour") speed = 6;
 
 
     spawnTimer = 80;
@@ -1664,6 +1700,11 @@ function updatePowerups() {
         );
 
 
+    if (parkourMode) {
+        ctx.fillStyle = "#dc2626";
+        ctx.fillText("🌋 LAVA PARKOUR", 880, 95);
+    }
+
     if (boost) {
 
         boostTimer--;
@@ -1681,6 +1722,119 @@ function updatePowerups() {
 
 }
 
+
+/* =====================================================
+   PARKOUR MODE
+===================================================== */
+
+function createParkourPlatform() {
+    const extreme = selectedLevel === "parkour-extreme";
+    const hard = selectedLevel === "parkour-hard";
+    const lava = selectedLevel === "lava-parkour";
+
+    // Lava Parkour is challenging but always gives the player a reachable route.
+    const minY = lava ? 350 : extreme ? 285 : hard ? 320 : 350;
+    const maxY = lava ? 455 : extreme ? 475 : hard ? 490 : 500;
+    const baseWidth = lava ? 135 : extreme ? 75 : hard ? 100 : 125;
+
+    parkourPlatforms.push({
+        x: W + 40,
+        y: minY + Math.random() * (maxY - minY),
+        width: baseWidth + Math.random() * 45,
+        height: 22,
+        speed: speed,
+        start: false
+    });
+}
+
+function updateParkour() {
+    parkourTimer--;
+
+    if (parkourTimer <= 0) {
+        createParkourPlatform();
+
+        if (selectedLevel === "lava-parkour") {
+            parkourTimer = 70 + Math.random() * 25;
+        } else if (selectedLevel === "parkour-easy") {
+            parkourTimer = 85 + Math.random() * 45;
+        } else if (selectedLevel === "parkour-hard") {
+            parkourTimer = 65 + Math.random() * 35;
+        } else {
+            parkourTimer = 48 + Math.random() * 28;
+        }
+    }
+
+    // Move only the floating platforms. The starting platform stays in place.
+    for (const platform of parkourPlatforms) {
+        if (!platform.start) {
+            platform.x -= boost
+                ? platform.speed * 1.7
+                : platform.speed;
+        }
+    }
+
+    parkourPlatforms = parkourPlatforms.filter(function(p) {
+        return p.start || p.x > -200;
+    });
+
+    // Land on platforms from above.
+    if (!player.grounded && player.velocityY >= 0) {
+        const bottom = player.y + player.height;
+        const nextBottom = bottom + player.velocityY;
+
+        for (const platform of parkourPlatforms) {
+            const overlapsX =
+                player.x + player.width - 10 > platform.x &&
+                player.x + 10 < platform.x + platform.width;
+
+            const landsOnTop =
+                bottom <= platform.y + 12 &&
+                nextBottom >= platform.y;
+
+            if (overlapsX && landsOnTop) {
+                player.y = platform.y - player.height;
+                player.velocityY = 0;
+                player.grounded = true;
+                player.parkourJumpCount = 0;
+                break;
+            }
+        }
+    }
+
+    // LAVA: touching the lava costs one life and resets the player.
+    if (player.y + player.height >= 535) {
+        lives--;
+
+        if (lives <= 0) {
+            loseGame();
+            return;
+        }
+
+        player.reset();
+    }
+}
+
+function drawParkour() {
+    for (const platform of parkourPlatforms) {
+        // Platform body
+        ctx.fillStyle = platform.start ? "#2563eb" : "#7c3aed";
+        ctx.fillRect(
+            platform.x,
+            platform.y,
+            platform.width,
+            platform.height
+        );
+
+        // Top edge
+        ctx.fillStyle = platform.start ? "#60a5fa" : "#c4b5fd";
+        ctx.fillRect(
+            platform.x,
+            platform.y,
+            platform.width,
+            5
+        );
+    }
+}
 
 /* =====================================================
    COLLISION
@@ -1708,6 +1862,8 @@ function collision(a, b) {
 
 
 function checkCollisions() {
+
+    if (parkourMode) return;
 
     for (
         const obstacle of obstacles
@@ -1900,63 +2056,55 @@ function drawBackground() {
     }
 
 
-    /*
-       YELLOW ROAD
-    */
+    if (parkourMode) {
+        // 🌋 LAVA FLOOR
+        ctx.fillStyle = "#7f1d1d";
+        ctx.fillRect(0, 535, W, 115);
 
-    ctx.fillStyle =
-        "#facc15";
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(0, 535, W, 8);
 
+        // Animated lava waves
+        for (let x = -40; x < W + 80; x += 80) {
+            const waveX = x + Math.sin(frames * 0.08 + x) * 12;
+            ctx.fillStyle = "#f97316";
+            ctx.beginPath();
+            ctx.arc(waveX, 555, 22, Math.PI, 0);
+            ctx.fill();
+        }
 
-    ctx.fillRect(
-        0,
-        535,
-        W,
-        115
-    );
+        for (let x = -20; x < W + 80; x += 110) {
+            const waveX = x + Math.sin(frames * 0.06 + x) * 15;
+            ctx.fillStyle = "#facc15";
+            ctx.beginPath();
+            ctx.arc(waveX, 590, 13, Math.PI, 0);
+            ctx.fill();
+        }
 
+        // Lava bubbles
+        for (let i = 0; i < 12; i++) {
+            const bx = (i * 117 + frames * (0.4 + i * 0.03)) % W;
+            const by = 615 + Math.sin(frames * 0.05 + i) * 18;
+            ctx.fillStyle = "#fb923c";
+            ctx.beginPath();
+            ctx.arc(bx, by, 5 + (i % 3) * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else {
+        /* YELLOW ROAD */
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(0, 535, W, 115);
 
-    /*
-       ROAD EDGE
-    */
+        /* ROAD EDGE */
+        ctx.fillStyle = "#92400e";
+        ctx.fillRect(0, 535, W, 8);
 
-    ctx.fillStyle =
-        "#92400e";
-
-
-    ctx.fillRect(
-        0,
-        535,
-        W,
-        8
-    );
-
-
-    /*
-       ROAD LINES
-    */
-
-    ctx.fillStyle =
-        "#a16207";
-
-
-    for (
-        let x = -100;
-        x < W + 100;
-        x += 120
-    ) {
-
-        const offset =
-            (frames * speed) % 120;
-
-
-        ctx.fillRect(
-            x - offset,
-            585,
-            70,
-            8
-        );
-
+        /* ROAD LINES */
+        ctx.fillStyle = "#a16207";
+        for (let x = -100; x < W + 100; x += 120) {
+            const offset = (frames * speed) % 120;
+            ctx.fillRect(x - offset, 585, 70, 8);
+        }
     }
 
 }
@@ -2456,6 +2604,14 @@ function happyEnding() {
 }
 
 
+function parkourEnding() {
+    showEndScreen(
+        "🏆 PARKOUR COMPLETE!",
+        currentCharacter.name + " escaped the lava parkour!",
+        "#a78bfa"
+    );
+}
+
 function hardEnding() {
 
     showEndScreen(
@@ -2534,18 +2690,15 @@ function update() {
 
     player.update();
 
-
-    updateObstacles();
-
+    if (parkourMode) {
+        updateParkour();
+    } else {
+        updateObstacles();
+        checkCollisions();
+    }
 
     updateCoins();
-
-
     updatePowerups();
-
-
-    checkCollisions();
-
 
     /*
        EASY END
@@ -2560,6 +2713,16 @@ function update() {
 
         return;
 
+    }
+
+
+    /*
+       PARKOUR END
+    */
+
+    if (parkourMode && score >= 900) {
+        parkourEnding();
+        return;
     }
 
 
@@ -2589,7 +2752,11 @@ function draw() {
 
     drawBackground();
 
-    drawObstacles();
+    if (parkourMode) {
+        drawParkour();
+    } else {
+        drawObstacles();
+    }
 
     drawCoins();
 
